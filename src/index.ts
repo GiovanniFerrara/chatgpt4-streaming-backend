@@ -83,9 +83,9 @@ app.post('/api/chat-completion-stream', async (req: Request, res: Response) => {
 
     // Save user messages to the conversation
     for (const message of messages) {
-      if (message.role === 'user') {
-        saveMessageToConversation(conversationId, message);
-      }
+      // if (message.role === 'user') {
+      //   saveMessageToConversation(conversationId, message);
+      // }
     }
 
     // Retrieve the conversation including previous messages
@@ -97,7 +97,7 @@ app.post('/api/chat-completion-stream', async (req: Request, res: Response) => {
     const openaiMessages = [systemMessage, ...conversation.messages];
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o',
       messages: openaiMessages as ChatCompletionMessageParam[],
       stream: true,
     });
