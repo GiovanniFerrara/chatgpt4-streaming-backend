@@ -63,6 +63,7 @@ app.get('/api/conversations', (req: Request, res: Response) => {
   res.json(conversations);
 });
 
+
 // Chat completion endpoint
 app.post('/api/chat-completion-stream', async (req: Request, res: Response) => {
   const { messages, conversationId } = req.body;
