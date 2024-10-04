@@ -1,0 +1,35 @@
+{
+  "name": "gpt4-streaming-backend",
+  "version": "1.0.0",
+  "description": "Backend server for GPT-4 streaming with Express and TypeScript",
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "nodemon src/index.ts --exec ts-node"
+  },
+  "keywords": [
+    "express",
+    "typescript",
+    "gpt4",
+    "streaming"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1",
+    "openai": "^4.67.1",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.13",
+    "@types/node": "^18.15.11",
+    "@types/uuid": "^10.0.0",
+    "nodemon": "^2.0.22",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.1.3"
+  }
+}
