@@ -10,6 +10,7 @@ import {
   saveMessageToConversation,
   Message,
 } from './conversation-service';
+import { generateConversationTitle } from './title-generator.service';
 
 const app = express();
 
@@ -34,10 +35,19 @@ const systemMessage: ChatCompletionMessageParam = {
   `,
 };
 
+
 // Create a new conversation
 app.post('/api/conversations', async (req: Request, res: Response) => {
+  if (!req.body.userMessage) {
+    return res
+      .status(400)
+      .json({ error: "Missing userMessage in request body" });
+  }
+
   try {
-    const newConversation = await createConversation(); // Await the Promise
+    const { userMessage } = req.body;
+    const conversationTitle = await generateConversationTitle(userMessage);
+    const newConversation = await createConversation(conversationTitle);
     res.status(201).json({ id: newConversation.id });
   } catch (error) {
     console.error('Error creating conversation:', error);
