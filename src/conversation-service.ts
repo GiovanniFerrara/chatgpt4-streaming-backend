@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import { JsonDB, Config } from 'node-json-db';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface Message {
@@ -12,50 +11,49 @@ export interface Conversation {
   messages: Message[];
 }
 
-const dbFilePath = path.resolve(__dirname, 'conversations.json');
+// Initialize the database
+const db = new JsonDB(new Config("conversations", true, false, '/'));
 
-function readDatabase(): Conversation[] {
-  if (!fs.existsSync(dbFilePath)) {
-    fs.writeFileSync(dbFilePath, JSON.stringify([]));
-  }
-  const data = fs.readFileSync(dbFilePath, 'utf-8');
-  return JSON.parse(data) as Conversation[];
-}
-
-function writeDatabase(conversations: Conversation[]) {
-  fs.writeFileSync(dbFilePath, JSON.stringify(conversations, null, 2));
-}
-
-export function createConversation(): Conversation {
-  const conversations = readDatabase();
+// Async functions to handle the database operations
+export async function createConversation(): Promise<Conversation> {
+  console.log("createConversation");
   const newConversation: Conversation = {
     id: uuidv4(),
     messages: [],
   };
-  conversations.push(newConversation);
-  writeDatabase(conversations);
+  // Push the new conversation into the database
+  await db.push(`/conversations/${newConversation.id}`, newConversation);
   return newConversation;
 }
 
-export function getConversationById(id: string): Conversation | null {
-  const conversations = readDatabase();
-  const conversation = conversations.find((conv) => conv.id === id);
-  return conversation || null;
+export async function getConversationById(id: string): Promise<Conversation | null> {
+  console.log("getConversationById");
+  try {
+    const conversation = await db.getData(`/conversations/${id}`) as Conversation;
+    return conversation;
+  } catch (error) {
+    // If conversation not found, return null
+    return null;
+  }
 }
 
-export function getAllConversations(): Conversation[] {
-  const conversations = readDatabase();
-  return conversations;
+export async function getAllConversations(): Promise<Conversation[]> {
+  console.log("getAllConversations");
+  try {
+    const conversations = await db.getData(`/conversations`) as { [key: string]: Conversation };
+    return Object.values(conversations);
+  } catch (error) {
+    // If no conversations exist yet, return an empty array
+    return [];
+  }
 }
 
-export function saveMessageToConversation(id: string, message: Message) {
-  const conversations = readDatabase();
-  const conversationIndex = conversations.findIndex((conv) => conv.id === id);
-  
-  if (conversationIndex !== -1) {
-    conversations[conversationIndex].messages.push(message);
-    writeDatabase(conversations);
-  } else {
+export async function saveMessageToConversation(id: string, message: Message): Promise<void> {
+  console.log('saveMessageToConversation');
+  try {
+    // Append the message to the messages array of the conversation
+    await db.push(`/conversations/${id}/messages[]`, message, true);
+  } catch (error) {
     throw new Error('Conversation not found');
   }
 }

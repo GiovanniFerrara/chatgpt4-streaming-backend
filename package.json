@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node dist/index.js",
     "build": "tsc",
-    "dev": "nodemon src/index.ts --exec ts-node"
+    "dev": "nodemon src/index.ts --watch src --ignore conversations.json --exec ts-node"
   },
   "keywords": [
     "express",
@@ -20,6 +20,7 @@
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
+    "node-json-db": "^2.3.0",
     "openai": "^4.67.1",
     "uuid": "^10.0.0"
   },

@@ -11,19 +11,18 @@ import {
   Message,
 } from './conversation-service';
 
-dotenv.config();
-
 const app = express();
-const port = process.env.PORT || 5120;
 
-app.use(cors({
-  origin: 'http://localhost:5173',
-}));
+app.use(cors());
 
 app.use(express.json());
 
+dotenv.config();
+
+const port = process.env.PORT || 5120;
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || "",
 });
 
 const systemMessage: ChatCompletionMessageParam = {
@@ -36,9 +35,9 @@ const systemMessage: ChatCompletionMessageParam = {
 };
 
 // Create a new conversation
-app.post('/api/conversations', (req: Request, res: Response) => {
+app.post('/api/conversations', async (req: Request, res: Response) => {
   try {
-    const newConversation = createConversation();
+    const newConversation = await createConversation(); // Await the Promise
     res.status(201).json({ id: newConversation.id });
   } catch (error) {
     console.error('Error creating conversation:', error);
@@ -47,25 +46,36 @@ app.post('/api/conversations', (req: Request, res: Response) => {
 });
 
 // Retrieve a conversation by ID
-app.get('/api/conversations/:id', (req: Request, res: Response) => {
+app.get('/api/conversations/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
-  const conversation = getConversationById(id);
-  if (conversation) {
-    res.json(conversation);
-  } else {
-    res.status(404).json({ error: 'Conversation not found' });
+  try {
+    const conversation = await getConversationById(id); // Await the Promise
+    if (conversation) {
+      res.json(conversation);
+    } else {
+      res.status(404).json({ error: 'Conversation not found' });
+    }
+  } catch (error) {
+    console.error('Error retrieving conversation:', error);
+    res.status(500).json({ error: 'Failed to retrieve conversation' });
   }
 });
 
 // Retrieve all conversations
-app.get('/api/conversations', (req: Request, res: Response) => {
-  const conversations = getAllConversations();
-  res.json(conversations);
+app.get('/api/conversations', async (req: Request, res: Response) => {
+  try {
+    const conversations = await getAllConversations(); // Await the Promise
+    res.json(conversations);
+  } catch (error) {
+    console.error('Error retrieving conversations:', error);
+    res.status(500).json({ error: 'Failed to retrieve conversations' });
+  }
 });
-
 
 // Chat completion endpoint
 app.post('/api/chat-completion-stream', async (req: Request, res: Response) => {
+  console.log("Received a request for chat completion");
+
   const { messages, conversationId } = req.body;
 
   if (!messages || !Array.isArray(messages)) {
@@ -76,58 +86,79 @@ app.post('/api/chat-completion-stream', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Conversation ID is required' });
   }
 
-  try {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
 
-    // Save user messages to the conversation
+  try {
     for (const message of messages) {
-      // if (message.role === 'user') {
-      //   saveMessageToConversation(conversationId, message);
-      // }
+      if (message.role === 'user') {
+        await saveMessageToConversation(conversationId, message);
+      }
     }
 
-    // Retrieve the conversation including previous messages
-    const conversation = getConversationById(conversationId);
+    const conversation = await getConversationById(conversationId);
     if (!conversation) {
       return res.status(404).json({ error: 'Conversation not found' });
     }
 
-    const openaiMessages = [systemMessage, ...conversation.messages];
+    const openaiMessages = [
+      systemMessage,
+      ...conversation.messages.map(m => ({
+        role: m.role,
+        content: m.content,
+      })),
+    ];
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: openaiMessages as ChatCompletionMessageParam[],
-      stream: true,
-    });
+    console.log('OpenAI messages:', openaiMessages);
 
-    let assistantMessageContent = '';
-
-    for await (const chunk of completion) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content !== undefined) {
-        assistantMessageContent += content;
-        res.write(`data: ${JSON.stringify({ content })}\n\n`);
-      }
+    let completion;
+    try {
+      console.log('Initiating OpenAI API call');
+      completion = await openai.chat.completions.create({
+        model: 'gpt-4', // Ensure the model name is correct
+        messages: openaiMessages as ChatCompletionMessageParam[],
+        stream: true,
+      });
+      console.log('OpenAI API call successful');
+    } catch (error) {
+      console.error('Error during OpenAI API call:', error);
+      res.status(500).json({ error: 'An error occurred while calling OpenAI API' });
+      return;
     }
 
-    // Save assistant's message to the conversation
-    const assistantMessage = {
+    let assistantMessageContent = '';
+    try {
+      for await (const chunk of completion) {
+        const content = chunk.choices[0]?.delta?.content;
+        if (content) {
+          assistantMessageContent += content;
+          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+      console.log('Streaming response completed');
+    } catch (error) {
+      console.error('Error during streaming:', error);
+      res.status(500).json({ error: 'An error occurred during streaming' });
+      return;
+    }
+
+    const assistantMessage: Message = {
       role: 'assistant',
       content: assistantMessageContent,
-    } as Message;
+    };
 
-    saveMessageToConversation(conversationId, assistantMessage);
+    await saveMessageToConversation(conversationId, assistantMessage);
 
     res.write('data: [DONE]\n\n');
     res.end();
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'An error occurred' });
+    console.error('Unexpected error:', error);
+    res.status(500).json({ error: 'An unexpected error occurred' });
   }
 });
+
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
