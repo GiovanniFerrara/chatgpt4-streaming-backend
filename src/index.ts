@@ -139,7 +139,6 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
     let assistantMessageContent = "";
     let toolCallsChunks: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[] =
       [];
-    let adaptiveCard = null;
 
     try {
       for await (const chunk of completion) {
@@ -163,6 +162,8 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
     }
 
     const combinedToolCalls = combineChunks(toolCallsChunks);
+    let adaptiveCard = null;
+    let cardData = null;
 
     if (combinedToolCalls.length > 0) {
       adaptiveCard = combinedToolCalls.find(
@@ -172,7 +173,7 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
       const isParsable = !!adaptiveCard?.function?.arguments;
 
       if (adaptiveCard && isParsable) {
-        const cardData = JSON.parse(adaptiveCard.function!.arguments!);
+        cardData = JSON.parse(adaptiveCard.function!.arguments!);
         res.write(`data: ${JSON.stringify({ adaptiveCard: cardData })}\n\n`);
       }
     }
@@ -180,7 +181,7 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
     const assistantMessage: Message = {
       role: "assistant",
       content: assistantMessageContent,
-      adaptiveCard: adaptiveCard,
+      adaptiveCard: cardData,
     };
 
     await saveMessageToConversation(conversationId, assistantMessage);

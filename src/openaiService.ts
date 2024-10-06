@@ -1,5 +1,8 @@
 import OpenAI from "openai";
-import { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources";
+import {
+  ChatCompletionMessageParam,
+  ChatCompletionTool,
+} from "openai/resources";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -13,52 +16,41 @@ const systemMessage: ChatCompletionMessageParam = {
   content: `
   You are a helpful assistant. 
 
-  You must generate adaptive cards at each user question. By calling the tool create_ui_component.
-  Add also some text to explain that you are generating a UI component.
+  You must generate adaptive cards when they can clarify user question. You might do it for code snippets with TextBlock with {fontType: monospace}. Don't use CodeBlock, not supported for browsers.
+
+  You can also ask questions with input components.
+  By calling the tool create_ui_component.
   `,
 };
 
 const generateAdaptiveCardTool: ChatCompletionTool = {
   type: "function",
   function: {
-    name: "create_ui_component",
-    description: "Create a UI component with title, text, and buttons",
+    name: 'create_ui_component',
+    description:
+      'Create a UI component adaptivecards, in the body you can return  a json object with the adaptive card, like TextBlock, Input.*',
     parameters: {
-      type: "object",
+      type: 'object',
       properties: {
-        title: {
-          type: "string",
-          description: "The title of the UI component"
-        },
-        text: {
-          type: "string",
-          description: "The main text content of the UI component"
-        },
-        buttons: {
-          type: "array",
+        body: {
+          type: 'array',
+          description:
+            "return an array of JSON objects of adaptive cards, do not add extra text: cards you can use: TextBlock, Input.* (all the input types you need), Container. You may nest them if needed",
+          example: '',
           items: {
-            type: "object",
-            properties: {
-              label: {
-                type: "string",
-                description: "The label text for the button"
-              },
-              action: {
-                type: "string",
-                description: "The action to be performed when the button is clicked"
-              }
-            },
-            required: ["label", "action"]
+            type: 'string',
           },
-          description: "An array of buttons for the UI component"
-        }
+        },
       },
-      required: ["title", "text"]
-    }
+    },
   }
 };
 
-export async function createChatCompletion(messages: ChatCompletionMessageParam[]) {
+
+
+export async function createChatCompletion(
+  messages: ChatCompletionMessageParam[]
+) {
   const openaiMessages = [systemMessage, ...messages];
 
   return await openai.chat.completions.create({
