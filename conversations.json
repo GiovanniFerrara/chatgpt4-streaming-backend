@@ -97,7 +97,7 @@
       "messages": [
         {
           "role": "user",
-          "content": "Give me code snipper to iterate though 100 reasons why I should hire Gian Marco"
+          "content": "Give me a code snippet to iterate through 100 reasons why I should hire Gian Marco"
         },
         {
           "role": "assistant",
