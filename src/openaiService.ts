@@ -28,7 +28,7 @@ const generateAdaptiveCardTool: ChatCompletionTool = {
   function: {
     name: 'create_ui_component',
     description:
-      'Create a UI component adaptivecards, in the body you can return  a json object with the adaptive card, like TextBlock, Input.*',
+      'Create a UI component adaptivecards, in the body you can return  a json object with the adaptive card, like TextBlock, Input.*. Never use markdown here',
     parameters: {
       type: 'object',
       properties: {
@@ -55,6 +55,7 @@ export async function createChatCompletion(
 
   return await openai.chat.completions.create({
     model: "gpt-4o",
+    temperature: 0,
     messages: openaiMessages,
     stream: true,
     tools: [generateAdaptiveCardTool],
