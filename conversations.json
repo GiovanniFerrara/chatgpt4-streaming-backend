@@ -127,7 +127,7 @@
       "messages": [
         {
           "role": "user",
-          "content": "Create a form to understand why cheese am I, according to my personality"
+          "content": "Create a form to understand which cheese am I, according to my personality"
         },
         {
           "role": "assistant",
