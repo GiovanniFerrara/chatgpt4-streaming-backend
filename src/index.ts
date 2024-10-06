@@ -11,8 +11,9 @@ import {
   Message,
 } from "./conversation-service";
 import { generateConversationTitle } from "./title-generator.service";
-import { createChatCompletion } from "./openaiService";
+import { createChatCompletion } from "./openai.service";
 import { combineChunks } from "./utils";
+import { getAdaptiveCardsDocs } from "./docs-retriver.service.";
 
 const app = express();
 
@@ -118,6 +119,11 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
     return res.status(401).json({ error: "OpenAI token is required" });
   }
 
+  const adaptiveCardsFilteredDoc = await getAdaptiveCardsDocs(
+    openaiToken,
+    JSON.stringify(messages, null, 2)
+  );
+
 
   try {
     const isAlreadySavedFirstUserMessage = messages.length === 1;
@@ -139,7 +145,7 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
 
     let completion;
     try {
-      completion = await createChatCompletion(openaiToken, openaiMessages);
+      completion = await createChatCompletion(openaiToken, openaiMessages, adaptiveCardsFilteredDoc);
     } catch (error) {
       console.error("Error during OpenAI API call:", error);
       res
@@ -179,7 +185,7 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
 
     if (combinedToolCalls.length > 0) {
       adaptiveCard = combinedToolCalls.find(
-        (call) => call?.function?.name === "create_ui_component"
+        (call) => call?.function?.name === "create_adaptive-cards"
       );
       console.log("Adaptive card found:", adaptiveCard);
       const isParsable = !!adaptiveCard?.function?.arguments;

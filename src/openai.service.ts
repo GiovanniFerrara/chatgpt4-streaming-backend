@@ -15,27 +15,23 @@ const systemMessage: ChatCompletionMessageParam = {
   You must generate adaptive cards when they can clarify user question. You might do it for code snippets with TextBlock with {fontType: monospace}. Don't use CodeBlock, not supported for browsers.
 
   You can also ask questions with input components.
-  By calling the tool create_ui_component.
+  By calling the tool create_adaptive-cards you will create adaptive cards. Please refer to the documentation provided, use ONLY the cards from the documentation.
   `,
 };
 
 const generateAdaptiveCardTool: ChatCompletionTool = {
   type: "function",
   function: {
-    name: 'create_ui_component',
+    name: 'create_adaptive-cards',
     description:
-      'Create a UI component adaptivecards, in the body you can return  a json object with the adaptive card, like TextBlock, Input.*. Never use markdown here',
+      'Create Adaptivecards, you can return a json object with the adaptive cards payload',
     parameters: {
       type: 'object',
       properties: {
         body: {
-          type: 'array',
+          type: 'string',
           description:
-            "return an array of JSON objects of adaptive cards, do not add extra text: cards you can use: TextBlock, Input.* (all the input types you need), Container. You may nest them if needed",
-          example: '',
-          items: {
-            type: 'string',
-          },
+            "return an array of JSON objects of adaptive cards, do not add extra text. Include version, type, body",
         },
       },
     },
@@ -46,13 +42,14 @@ const generateAdaptiveCardTool: ChatCompletionTool = {
 
 export async function createChatCompletion(
   apiKey: string,
-  messages: ChatCompletionMessageParam[]
+  messages: ChatCompletionMessageParam[],
+  additionalSystemMessage: string = ""
 ) {
   const openai = new OpenAI({
     apiKey,
   });
 
-  const openaiMessages = [systemMessage, ...messages];
+  const openaiMessages = [systemMessage, {role: 'system', content: additionalSystemMessage} as ChatCompletionMessageParam, ...messages];
 
   return await openai.chat.completions.create({
     model: "gpt-4o",

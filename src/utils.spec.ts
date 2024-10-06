@@ -6,7 +6,7 @@ const chunks = [
     id: "call_XcZRCd0h1lEcGtsk3hbYAsIL",
     type: "function",
     function: {
-      name: "create_ui_component",
+      name: "create_adaptive-cards",
       arguments: "",
     },
   },
@@ -403,7 +403,7 @@ describe("combineChunks", () => {
       {
         index: 0,
         function: {
-          name: "create_ui_component",
+          name: "create_adaptive-cards",
           arguments: JSON.stringify({
             title: "How Old Are You?",
             text: "Unfortunately, I can't determine your age from this interaction. Would you like help on how to find out your age?",
