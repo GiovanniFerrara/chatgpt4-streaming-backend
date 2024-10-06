@@ -44,10 +44,15 @@ app.post("/api/conversations", async (req: Request, res: Response) => {
       .status(400)
       .json({ error: "Missing userMessage in request body" });
   }
+  const openaiToken = req.headers['x-openai-token'] as string;
+
+  if (!openaiToken) {
+    return res.status(401).json({ error: "OpenAI token is required" });
+  }
 
   try {
     const { userMessage } = req.body;
-    const conversationTitle = await generateConversationTitle(userMessage);
+    const conversationTitle = await generateConversationTitle(openaiToken, userMessage);
     const newConversation = await createConversation(
       userMessage,
       conversationTitle
@@ -107,6 +112,13 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
+  const openaiToken = req.headers['x-openai-token'] as string;
+
+  if (!openaiToken) {
+    return res.status(401).json({ error: "OpenAI token is required" });
+  }
+
+
   try {
     const isAlreadySavedFirstUserMessage = messages.length === 1;
     const message = messages[messages.length - 1];
@@ -127,7 +139,7 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
 
     let completion;
     try {
-      completion = await createChatCompletion(openaiMessages);
+      completion = await createChatCompletion(openaiToken, openaiMessages);
     } catch (error) {
       console.error("Error during OpenAI API call:", error);
       res

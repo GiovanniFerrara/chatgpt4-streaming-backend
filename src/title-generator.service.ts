@@ -14,9 +14,9 @@ const systemMessageForConversationTitleCreation: ChatCompletionMessageParam = {
   `,
 };
 
-export const generateConversationTitle = async (content: string): Promise<string> => {
+export const generateConversationTitle = async (openaiToken: string, content: string): Promise<string> => {
   const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: openaiToken,
   });
 
   const response = await openai.chat.completions.create({

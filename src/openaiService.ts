@@ -7,10 +7,6 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 const systemMessage: ChatCompletionMessageParam = {
   role: "system",
   content: `
@@ -49,8 +45,13 @@ const generateAdaptiveCardTool: ChatCompletionTool = {
 
 
 export async function createChatCompletion(
+  apiKey: string,
   messages: ChatCompletionMessageParam[]
 ) {
+  const openai = new OpenAI({
+    apiKey,
+  });
+
   const openaiMessages = [systemMessage, ...messages];
 
   return await openai.chat.completions.create({
