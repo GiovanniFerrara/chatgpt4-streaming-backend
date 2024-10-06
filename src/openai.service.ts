@@ -12,10 +12,11 @@ const systemMessage: ChatCompletionMessageParam = {
   content: `
   You are a helpful assistant. 
 
-  You must generate adaptive cards when they can clarify user question. You might do it for code snippets with TextBlock with {fontType: monospace}. Don't use CodeBlock, not supported for browsers.
+  You must generate cards when asked to.
+  In all the other cases respond with the text.
 
-  You can also ask questions with input components.
-  By calling the tool create_adaptive-cards you will create adaptive cards. Please refer to the documentation provided, use ONLY the cards from the documentation.
+  You might ask questions with input components time to time.
+  By calling the tool create_adaptive-cards you will create adaptive cards. Please refer to the documentation provided, use ONLY the cards from the provided documentation.
   `,
 };
 
@@ -24,14 +25,14 @@ const generateAdaptiveCardTool: ChatCompletionTool = {
   function: {
     name: 'create_adaptive-cards',
     description:
-      'Create Adaptivecards, you can return a json object with the adaptive cards payload',
+      'Create Adaptivecards, you can return a json object with the adaptive card payload',
     parameters: {
       type: 'object',
       properties: {
-        body: {
+        cardData: {
           type: 'string',
           description:
-            "return an array of JSON objects of adaptive cards, do not add extra text. Include version, type, body",
+            'return an array of JSON objects of adaptive cards, do not add extra text. Include version, type, body. Escape the double quotes and special chars with a backslash.',
         },
       },
     },
