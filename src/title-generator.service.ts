@@ -6,11 +6,11 @@ const systemMessageForConversationTitleCreation: ChatCompletionMessageParam = {
   content: `
   You a conversation title creator. You'll get a conversation message and you should create a title for the conversation.
   The title should be a short sentence, no more than 6 words.
-  Just return the title, no other text.
+  Just return the title, no other text. No double quotes.
   Example:
 
-  user: "What's the best way to learn React? I tried several tutorials but really bad at it."
-  assistant: "React learning tips"
+  user: What's the best way to learn React? I tried several tutorials but really bad at it.
+  assistant: React learning tips
   `,
 };
 

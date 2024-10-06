@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 export interface Message {
   role: "system" | "user" | "assistant";
   content: string;
+  adaptiveCard?: any;
 }
 
 export interface Conversation {
@@ -17,7 +18,7 @@ const db = new JsonDB(new Config("conversations", true, false, "/"));
 
 export async function createConversation(
   userMessage: string,
-  conversationTitle: string
+  conversationTitle: string,
 ): Promise<Conversation> {
   const newConversation: Conversation = {
     createdAt: new Date(),

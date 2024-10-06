@@ -9,9 +9,10 @@ import {
   getAllConversations,
   saveMessageToConversation,
   Message,
-  updateConversationTitle,
 } from "./conversation-service";
 import { generateConversationTitle } from "./title-generator.service";
+import { createChatCompletion } from "./openaiService";
+import { combineChunks } from "./utils";
 
 const app = express();
 
@@ -107,26 +108,26 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
   res.setHeader("Connection", "keep-alive");
 
   try {
+    const isAlreadySavedFirstUserMessage = messages.length === 1;
+    const message = messages[messages.length - 1];
+
+    if (message.role === "user" && !isAlreadySavedFirstUserMessage) {
+      await saveMessageToConversation(conversationId, message);
+    }
+
     const conversation = await getConversationById(conversationId);
     if (!conversation) {
       return res.status(404).json({ error: "Conversation not found" });
     }
 
-    const openaiMessages = [
-      systemMessage,
-      ...conversation.messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    ];
+    const openaiMessages = conversation.messages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
     let completion;
     try {
-      completion = await openai.chat.completions.create({
-        model: "gpt-4", // Ensure the model name is correct
-        messages: openaiMessages as ChatCompletionMessageParam[],
-        stream: true,
-      });
+      completion = await createChatCompletion(openaiMessages);
     } catch (error) {
       console.error("Error during OpenAI API call:", error);
       res
@@ -136,12 +137,22 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
     }
 
     let assistantMessageContent = "";
+    let toolCallsChunks: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[] =
+      [];
+    let adaptiveCard = null;
+
     try {
       for await (const chunk of completion) {
-        const content = chunk.choices[0]?.delta?.content;
-        if (content) {
+        if (chunk.choices[0]?.delta?.content) {
+          const content = chunk.choices[0].delta.content;
           assistantMessageContent += content;
           res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+
+        if (chunk.choices[0].delta?.tool_calls) {
+          toolCallsChunks = toolCallsChunks.concat(
+            chunk.choices[0].delta.tool_calls
+          );
         }
       }
       console.log("Streaming response completed");
@@ -151,9 +162,25 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
       return;
     }
 
+    const combinedToolCalls = combineChunks(toolCallsChunks);
+
+    if (combinedToolCalls.length > 0) {
+      adaptiveCard = combinedToolCalls.find(
+        (call) => call?.function?.name === "create_ui_component"
+      );
+      console.log("Adaptive card found:", adaptiveCard);
+      const isParsable = !!adaptiveCard?.function?.arguments;
+
+      if (adaptiveCard && isParsable) {
+        const cardData = JSON.parse(adaptiveCard.function!.arguments!);
+        res.write(`data: ${JSON.stringify({ adaptiveCard: cardData })}\n\n`);
+      }
+    }
+
     const assistantMessage: Message = {
       role: "assistant",
       content: assistantMessageContent,
+      adaptiveCard: adaptiveCard,
     };
 
     await saveMessageToConversation(conversationId, assistantMessage);
