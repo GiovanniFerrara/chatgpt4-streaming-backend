@@ -12,8 +12,8 @@ import {
 } from "./conversation-service";
 import { generateConversationTitle } from "./title-generator.service";
 import { createChatCompletion } from "./openai.service";
-import { combineChunks } from "./utils";
 import { getAdaptiveCardsDocs } from "./docs-retriver.service.";
+import { Stream } from "openai/streaming";
 
 const app = express();
 
@@ -45,7 +45,7 @@ app.post("/api/conversations", async (req: Request, res: Response) => {
       .status(400)
       .json({ error: "Missing userMessage in request body" });
   }
-  const openaiToken = req.headers['x-openai-token'] as string;
+  const openaiToken = req.headers["x-openai-token"] as string;
 
   if (!openaiToken) {
     return res.status(401).json({ error: "OpenAI token is required" });
@@ -53,7 +53,10 @@ app.post("/api/conversations", async (req: Request, res: Response) => {
 
   try {
     const { userMessage } = req.body;
-    const conversationTitle = await generateConversationTitle(openaiToken, userMessage);
+    const conversationTitle = await generateConversationTitle(
+      openaiToken,
+      userMessage
+    );
     const newConversation = await createConversation(
       userMessage,
       conversationTitle
@@ -113,17 +116,16 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
-  const openaiToken = req.headers['x-openai-token'] as string;
+  const openaiToken = req.headers["x-openai-token"] as string;
 
   if (!openaiToken) {
     return res.status(401).json({ error: "OpenAI token is required" });
   }
 
-  const adaptiveCardsFilteredDoc = await getAdaptiveCardsDocs(
-    openaiToken,
-    JSON.stringify(messages, null, 2)
-  );
-
+  let toolCallDetected = false;
+  let toolCallName = "" as string | undefined | null;
+  let toolCallArguments = "" as string | undefined | null;
+  let cardGeneratedPayload: string | null = null;
 
   try {
     const isAlreadySavedFirstUserMessage = messages.length === 1;
@@ -144,8 +146,14 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
     }));
 
     let completion;
+    
+    // let refactor this to make it more readable
     try {
-      completion = await createChatCompletion(openaiToken, openaiMessages, adaptiveCardsFilteredDoc);
+      completion = await createChatCompletion({
+        apiKey: openaiToken,
+        messages: openaiMessages,
+        stream: true,
+      });
     } catch (error) {
       console.error("Error during OpenAI API call:", error);
       res
@@ -159,7 +167,9 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
       [];
 
     try {
-      for await (const chunk of completion) {
+      for await (const chunk of completion as Stream<OpenAI.Chat.Completions.ChatCompletionChunk>) {
+        const delta = chunk.choices[0]?.delta;
+
         if (chunk.choices[0]?.delta?.content) {
           const content = chunk.choices[0].delta.content;
           assistantMessageContent += content;
@@ -170,36 +180,78 @@ app.post("/api/chat-completion-stream", async (req: Request, res: Response) => {
           toolCallsChunks = toolCallsChunks.concat(
             chunk.choices[0].delta.tool_calls
           );
+
+          const toolCall = delta?.tool_calls?.find(
+            (call) => call?.function?.name === "create_adaptive-cards"
+          );
+
+          if (toolCall) {
+            toolCallDetected = true;
+            toolCallName = toolCall?.function?.name;
+            toolCallArguments = toolCall?.function?.arguments;
+          }
         }
       }
-      console.log("Streaming response completed");
+
+      console.log("Streaming simple response completed");
     } catch (error) {
       console.error("Error during streaming:", error);
       res.status(500).json({ error: "An error occurred during streaming" });
       return;
     }
 
-    const combinedToolCalls = combineChunks(toolCallsChunks);
-    let adaptiveCard = null;
-    let cardData = null;
-
-    if (combinedToolCalls.length > 0) {
-      adaptiveCard = combinedToolCalls.find(
-        (call) => call?.function?.name === "create_adaptive-cards"
+    if (
+      toolCallDetected &&
+      typeof toolCallArguments === "string" &&
+      toolCallName === "create_adaptive-cards"
+    ) {
+      const adaptiveCardsFilteredDoc = await getAdaptiveCardsDocs(
+        openaiToken,
+        JSON.stringify(messages)
       );
-      console.log("Adaptive card found:", adaptiveCard);
-      const isParsable = !!adaptiveCard?.function?.arguments;
 
-      if (adaptiveCard && isParsable) {
-        cardData = JSON.parse(adaptiveCard.function!.arguments!);
-        res.write(`data: ${JSON.stringify({ adaptiveCard: cardData })}\n\n`);
-      }
+      const newMessages: ChatCompletionMessageParam[] = [
+        ...openaiMessages,
+        {
+          role: "system",
+          content: `Adaptive cards docs:
+          ${adaptiveCardsFilteredDoc}
+          `,
+        },
+        {
+          role: "assistant",
+          content: null,
+          function_call: { name: toolCallName, arguments: toolCallArguments },
+        },
+      ];
+
+      const functionCallWithCardArguments = await createChatCompletion({
+        apiKey: openaiToken,
+        messages: newMessages,
+        stream: false,
+      });
+
+      cardGeneratedPayload = (
+        functionCallWithCardArguments as OpenAI.Chat.Completions.ChatCompletion
+      ).choices[0].message.content;
+    }
+
+
+    if (cardGeneratedPayload) {
+      console.log("Adaptive card found:", cardGeneratedPayload, {
+        typeofCard: typeof cardGeneratedPayload,
+        typeofCardData: JSON.parse(cardGeneratedPayload),
+      });
+
+      res.write(
+        `data: ${JSON.stringify({ adaptiveCard: JSON.parse(cardGeneratedPayload) })}\n\n`
+      );
     }
 
     const assistantMessage: Message = {
       role: "assistant",
       content: assistantMessageContent,
-      adaptiveCard: cardData,
+      adaptiveCard: JSON.parse(cardGeneratedPayload!),
     };
 
     await saveMessageToConversation(conversationId, assistantMessage);

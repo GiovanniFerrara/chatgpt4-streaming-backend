@@ -4,6 +4,7 @@ import {
   ChatCompletionTool,
 } from "openai/resources";
 import dotenv from "dotenv";
+import { Stream } from "openai/streaming";
 
 dotenv.config();
 
@@ -41,24 +42,27 @@ const generateAdaptiveCardTool: ChatCompletionTool = {
 
 
 
-export async function createChatCompletion(
+export async function createChatCompletion({
+  apiKey,
+  messages,
+  stream = false,
+}: {
   apiKey: string,
   messages: ChatCompletionMessageParam[],
-  additionalSystemMessage: string = ""
-) {
+  stream?: boolean;
+}): Promise<OpenAI.Chat.Completions.ChatCompletion | Stream<OpenAI.Chat.Completions.ChatCompletionChunk>> {
   const openai = new OpenAI({
     apiKey,
   });
 
-  const openaiMessages = [systemMessage, {role: 'system', content: additionalSystemMessage} as ChatCompletionMessageParam, ...messages];
+  const openaiMessages = [systemMessage, ...messages];
 
-  return await openai.chat.completions.create({
-    model: "gpt-4o",
+  return openai.chat.completions.create({
+    model: "gpt-4",
     temperature: 0,
     messages: openaiMessages,
-    stream: true,
+    stream,
     tools: [generateAdaptiveCardTool],
   });
 }
-
 export { systemMessage, generateAdaptiveCardTool };
