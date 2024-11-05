@@ -5,10 +5,7 @@ import { Message, saveMessageToConversation } from "../conversations-storage";
 import { OpenAIService } from "./openai.service";
 
 export class ChatCompletionService {
-  private openAIService: OpenAIService;
-  constructor() {
-    this.openAIService = new OpenAIService(process.env.OPENAI_API_KEY!);
-  }
+  private openAIService: OpenAIService | undefined;
 
   validateRequest(messages: any[], conversationId: string, openaiToken: string): boolean {
     if (!messages || !Array.isArray(messages)) {
@@ -48,7 +45,7 @@ export class ChatCompletionService {
 
   private async createCompletion(messages: any[]) {
     try {
-      return await this.openAIService.createChatCompletion({
+      return await this.openAIService?.createChatCompletion({
         messages,
         stream: true,
       });
