@@ -17,8 +17,16 @@ export class ConversationService {
   }
 
   async getAllConversations() {
-    const conversations = await this.conversationsStorageService.getAllConversations();
-    return conversations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    try{
+
+      const conversations = await this.conversationsStorageService.getAllConversations();
+      return conversations.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch(e) {
+      // there could be inconsistencies sometimes given the usage of a JSON DB  
+      this.conversationsStorageService.resetDB()
+
+      return []
+    }
   }
 
   async saveMessage(conversationId: string, message: any) {

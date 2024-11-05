@@ -80,4 +80,8 @@ export class ConversationsStorageService {
       throw new Error("Conversation not found");
     }
   }
+  async resetDB(): Promise<void> {
+    await this.db.reload()
+    await this.db.push("/conversations", {}, true)
+  }
 }
