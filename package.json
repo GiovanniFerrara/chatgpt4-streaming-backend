@@ -1,7 +1,7 @@
 {
   "name": "gpt4-streaming-backend",
   "version": "1.0.0",
-  "description": "Backend server for GPT-4 streaming with Express and TypeScript",
+  "description": "Backend server for GPT-4 streaming with Express, TypeScript and firebase",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",

@@ -1,11 +1,11 @@
-# GPT-4o Streaming Backend
+# GPT-4 Streaming Backend
 
 A robust Node.js backend service that handles streaming chat completions with GPT-4, conversation management, and persistent storage.
 
 ## Features
 
 - Streaming chat completions using OpenAI's GPT-4 model
-- Conversation management with persistent storage using JsonDB
+- Conversation management with persistent storage using Firebase
 - RESTful API endpoints for conversations
 - Sassy and sarcastic AI personality
 - Event-stream based real-time responses
@@ -14,7 +14,7 @@ A robust Node.js backend service that handles streaming chat completions with GP
 
 - TypeScript
 - OpenAI API
-- JsonDB for data persistence
+- Firebase Realtime Database
 - Express.js (implied from the controllers structure)
 
 ## API Endpoints
@@ -39,7 +39,22 @@ All requests require an OpenAI API token passed via the `x-openai-token` header.
 npm install
 
 
-3. Set up your environment variables
+3. Set up your environment variables in .env:
+
+
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key
+
+# Firebase Configuration
+FIREBASE_API_KEY=your_firebase_api_key
+FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+FIREBASE_APP_ID=your_app_id
+FIREBASE_DATABASE_URL=https://your-project-id.firebaseio.com
+
+
 4. Start the server:
 
 npm start
