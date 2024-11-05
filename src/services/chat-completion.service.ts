@@ -1,13 +1,24 @@
 import { Response } from "express";
 import { Stream } from "openai/streaming";
 import OpenAI from "openai";
-import { Message, saveMessageToConversation } from "./conversations-storage.service";
+import {
+  ConversationsStorageService,
+  Message,
+} from "./conversations-storage.service";
 import { OpenAIService } from "./openai.service";
 
 export class ChatCompletionService {
   private openAIService: OpenAIService | undefined;
-
-  validateRequest(messages: any[], conversationId: string, openaiToken: string): boolean {
+  private conversationsStorageService: ConversationsStorageService;
+  constructor(
+  ) {
+    this.conversationsStorageService = new ConversationsStorageService();
+  }
+  validateRequest(
+    messages: any[],
+    conversationId: string,
+    openaiToken: string
+  ): boolean {
     if (!messages || !Array.isArray(messages)) {
       return false;
     }
@@ -84,6 +95,9 @@ export class ChatCompletionService {
   }
 
   private async saveMessage(conversationId: string, message: Message) {
-    return await saveMessageToConversation(conversationId, message);
+    return this.conversationsStorageService.saveMessageToConversation(
+      conversationId,
+      message
+    );
   }
 }
