@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { Stream } from "openai/streaming";
 import OpenAI from "openai";
-import { Message, saveMessageToConversation } from "../conversations-storage";
+import { Message, saveMessageToConversation } from "./conversations-storage.service";
 import { OpenAIService } from "./openai.service";
 
 export class ChatCompletionService {

@@ -1,4 +1,4 @@
-import { combineChunks } from "./utils";
+import { combineChunks } from "./combine-chunks";
 
 const chunks = [
   {

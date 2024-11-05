@@ -1,10 +1,10 @@
-import { generateConversationTitle } from "../title-generator.service";
+import { generateConversationTitle } from "./utils/title-generator";
 import {
   createConversation,
   getConversationById,
   getAllConversations,
   saveMessageToConversation,
-} from "../conversations-storage";
+} from "./conversations-storage.service";
 
 export class ConversationService {
   async createNewConversation(openaiToken: string, userMessage: string) {
