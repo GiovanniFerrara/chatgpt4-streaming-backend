@@ -1,5 +1,4 @@
-import { ChildProcess } from "child_process";
-import { JsonDB, Config } from "node-json-db";
+import { getDatabase, ref, set, get, push, child,serverTimestamp } from "firebase/database";
 import { v4 as uuidv4 } from "uuid";
 
 export interface Message {
@@ -15,10 +14,10 @@ export interface Conversation {
 }
 
 export class ConversationsStorageService {
-  private db: JsonDB;
+  private db;
 
   constructor() {
-    this.db = new JsonDB(new Config("conversations", true, false, "/"));
+    this.db = getDatabase();
   }
 
   async createConversation(
@@ -37,51 +36,55 @@ export class ConversationsStorageService {
       ],
     };
 
-    await this.db.push(`/conversations/${newConversation.id}`, newConversation);
+    await set(ref(this.db, `conversations/${newConversation.id}`), {
+      ...newConversation,
+      createdAt: serverTimestamp(),
+    });
     return newConversation;
   }
 
-  async updateConversationTitle(id: string, newTitle: string): Promise<void> {
+
+  async getAllConversations(): Promise<Conversation[]> {
     try {
-      await this.db.push(`/conversations/${id}/title`, newTitle, true);
+      const snapshot = await get(child(ref(this.db), 'conversations'));
+      if (!snapshot.exists()) return [];
+
+      return Object.values(snapshot.val()).map((conv: any) => ({
+        id: conv.id,
+        title: conv.title,
+        createdAt: new Date(conv.createdAt),
+        messages: Object.values(conv.messages)
+      }));
     } catch (error) {
-      console.error("Error updating conversation title:", error);
-      throw error;
+      return [];
     }
   }
 
   async getConversationById(id: string): Promise<Conversation | null> {
     try {
-      await this.db.reload();
-      return this.db.getData(
-        `/conversations/${id}`
-      )
+      const snapshot = await get(child(ref(this.db), `conversations/${id}`));
+      if (!snapshot.exists()) return null;
+      
+      const conv = snapshot.val();
+      return {
+        id: conv.id,
+        title: conv.title,
+        createdAt: new Date(conv.createdAt),
+        messages: Object.values(conv.messages)
+      };
     } catch (error) {
       return null;
-    }
-  }
-
-  async getAllConversations(): Promise<Conversation[]> {
-    try {
-      const conversations = (await this.db.getData(`/conversations`)) as {
-        [key: string]: Conversation;
-      };
-      return Object.values(conversations);
-    } catch (error) {
-      return [];
     }
   }
 
   async saveMessageToConversation(id: string, message: Message): Promise<void> {
     console.log("Saving message to conversation:", id, message);
     try {
-      await this.db.push(`/conversations/${id}/messages[]`, message, true);
+      const conversationRef = ref(this.db, `conversations/${id}/messages`);
+      const newMessageRef = push(conversationRef);
+      await set(newMessageRef, message);
     } catch (error) {
       throw new Error("Conversation not found");
     }
-  }
-  async resetDB(): Promise<void> {
-    await this.db.reload()
-    await this.db.push("/conversations", {}, true)
   }
 }

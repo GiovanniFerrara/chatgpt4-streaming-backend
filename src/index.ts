@@ -4,6 +4,10 @@ import cors from "cors";
 import { ConversationService } from "./services/conversation.service";
 import { ChatCompletionService } from "./services/chat-completion.service";
 import { ConversationController } from "./controllers/conversations.controller";
+import { firebaseDb } from "./firebase-db";
+
+
+console.log(firebaseDb.name)
 
 dotenv.config();
 const app = express();
