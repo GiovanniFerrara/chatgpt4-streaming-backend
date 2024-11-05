@@ -30,17 +30,6 @@ A robust Node.js backend service that handles streaming chat completions with GP
 
 All requests require an OpenAI API token passed via the `x-openai-token` header.
 
-## Project Structure
-
-
-src/
-├── controllers/
-│   └── conversations.controller.ts
-├── services/
-│   ├── chat-completion.service.ts
-│   ├── conversation.service.ts
-│   ├── conversations-storage.service.ts
-│   └── openai.service.ts
 
 ## Getting Started
 
