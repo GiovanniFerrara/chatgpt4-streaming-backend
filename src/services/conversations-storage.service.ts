@@ -52,6 +52,7 @@ export class ConversationsStorageService {
 
   async getConversationById(id: string): Promise<Conversation | null> {
     try {
+      await this.db.reload();
       return this.db.getData(
         `/conversations/${id}`
       )
