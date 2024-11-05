@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { ConversationService } from "./services/conversation.service";
 import { ChatCompletionService } from "./services/chat-completion.service";
-import { ConversationController } from "./conversations.controller";
+import { ConversationController } from "./controllers/conversations.controller";
 
 dotenv.config();
 const app = express();

@@ -1,7 +1,6 @@
 import OpenAI from "openai";
 import {
   ChatCompletionMessageParam,
-  ChatCompletionTool,
 } from "openai/resources";
 import dotenv from "dotenv";
 import { Stream } from "openai/streaming";

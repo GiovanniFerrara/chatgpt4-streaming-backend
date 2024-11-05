@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { ConversationService } from "./services/conversation.service";
-import { ChatCompletionService } from "./services/chat-completion.service";
+import { ConversationService } from "../services/conversation.service";
+import { ChatCompletionService } from "../services/chat-completion.service";
 
 export class ConversationController {
   constructor(
